@@ -364,62 +364,78 @@
     const perAdData = {};
     const adsStats = {};
     let completed = 0;
+    const adCount = ads.filter(ad => ad.ad_id || ad.id).length;
+    const BATCH_SIZE = adCount < 10 ? 1 : adCount < 50 ? 5 : 10;
 
-    for (const ad of ads) {
-      const adId = ad.ad_id || ad.id;
-      const adTitle = ad.title || ad.name || `Ad ${adId}`;
-      if (!adId) continue;
-
-      adsStats[adId] = { adId, title: adTitle, views: 0, clicks: 0, actions: 0, spent: 0, days: [] };
-
-      try {
-        const stats = await fetchAdStats(adId);
-        for (const day of stats.daily_stats) {
-          if (!allDailyStats[day.date]) {
-            allDailyStats[day.date] = { date: day.date, views: 0, clicks: 0, actions: 0, spent: 0 };
-            perAdData[day.date] = [];
-          }
-          allDailyStats[day.date].views += day.views || 0;
-          allDailyStats[day.date].clicks += day.clicks || 0;
-          allDailyStats[day.date].actions += day.actions || 0;
-          allDailyStats[day.date].spent += day.spent || 0;
-
-          adsStats[adId].views += day.views || 0;
-          adsStats[adId].clicks += day.clicks || 0;
-          adsStats[adId].actions += day.actions || 0;
-          adsStats[adId].spent += day.spent || 0;
-
-          if (day.views > 0 || day.clicks > 0 || day.actions > 0 || day.spent > 0) {
-            perAdData[day.date].push({
-              adId,
-              title: adTitle,
-              views: day.views || 0,
-              clicks: day.clicks || 0,
-              actions: day.actions || 0,
-              spent: day.spent || 0,
-              cpa: day.cpa || 0,
-              cpc: day.cpc || 0,
-              ctr: day.ctr || 0,
-              cvr: day.cvr || 0
-            });
-
-            adsStats[adId].days.push({
-              date: day.date,
-              views: day.views || 0,
-              clicks: day.clicks || 0,
-              actions: day.actions || 0,
-              spent: day.spent || 0,
-              cpa: day.cpa || 0,
-              cpc: day.cpc || 0,
-              ctr: day.ctr || 0,
-              cvr: day.cvr || 0
-            });
-          }
+    const processAdStats = (adId, adTitle, stats) => {
+      if (!adsStats[adId]) {
+        adsStats[adId] = { adId, title: adTitle, views: 0, clicks: 0, actions: 0, spent: 0, days: [] };
+      }
+      for (const day of stats.daily_stats) {
+        if (!allDailyStats[day.date]) {
+          allDailyStats[day.date] = { date: day.date, views: 0, clicks: 0, actions: 0, spent: 0 };
+          perAdData[day.date] = [];
         }
-      } catch {}
+        allDailyStats[day.date].views += day.views || 0;
+        allDailyStats[day.date].clicks += day.clicks || 0;
+        allDailyStats[day.date].actions += day.actions || 0;
+        allDailyStats[day.date].spent += day.spent || 0;
 
-      completed++;
-      if (onProgress) onProgress(completed, ads.length);
+        adsStats[adId].views += day.views || 0;
+        adsStats[adId].clicks += day.clicks || 0;
+        adsStats[adId].actions += day.actions || 0;
+        adsStats[adId].spent += day.spent || 0;
+
+        if (day.views > 0 || day.clicks > 0 || day.actions > 0 || day.spent > 0) {
+          perAdData[day.date].push({
+            adId,
+            title: adTitle,
+            views: day.views || 0,
+            clicks: day.clicks || 0,
+            actions: day.actions || 0,
+            spent: day.spent || 0,
+            cpa: day.cpa || 0,
+            cpc: day.cpc || 0,
+            ctr: day.ctr || 0,
+            cvr: day.cvr || 0
+          });
+
+          adsStats[adId].days.push({
+            date: day.date,
+            views: day.views || 0,
+            clicks: day.clicks || 0,
+            actions: day.actions || 0,
+            spent: day.spent || 0,
+            cpa: day.cpa || 0,
+            cpc: day.cpc || 0,
+            ctr: day.ctr || 0,
+            cvr: day.cvr || 0
+          });
+        }
+      }
+    };
+
+    const validAds = ads.filter(ad => ad.ad_id || ad.id);
+    for (let i = 0; i < validAds.length; i += BATCH_SIZE) {
+      const batch = validAds.slice(i, i + BATCH_SIZE);
+      const promises = batch.map(async (ad) => {
+        const adId = ad.ad_id || ad.id;
+        const adTitle = ad.title || ad.name || `Ad ${adId}`;
+        adsStats[adId] = { adId, title: adTitle, views: 0, clicks: 0, actions: 0, spent: 0, days: [] };
+        try {
+          const stats = await fetchAdStats(adId);
+          return { adId, adTitle, stats };
+        } catch {
+          return null;
+        }
+      });
+
+      const results = await Promise.all(promises);
+      for (const result of results) {
+        if (result) processAdStats(result.adId, result.adTitle, result.stats);
+        completed++;
+        if (onProgress) onProgress(completed, validAds.length);
+      }
     }
 
     const byDate = Object.values(allDailyStats)
@@ -1028,9 +1044,12 @@
     if (toggle && statsContainer) {
       toggle.addEventListener('change', async () => {
         if (toggle.checked) {
+          const adCount = cachedAds?.length || 0;
+          const batchSize = adCount < 10 ? 1 : adCount < 50 ? 5 : 10;
+          const speedLabel = batchSize === 1 ? 'Sequential' : `${batchSize}x Parallel`;
           const confirmed = await showConfirmDialog(
             'Fetch Daily Stats',
-            'This will fetch daily stats from all ads which may take a few minutes depending on the number of ads. Do you want to continue?'
+            `This will fetch daily stats from ${adCount} ads using ${speedLabel} mode. This may take a moment. Do you want to continue?`
           );
           if (!confirmed) {
             toggle.checked = false;
