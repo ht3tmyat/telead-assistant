@@ -1309,3 +1309,453 @@
   opacity: 1;
   visibility: visible;
 }
+
+.tg-ads-daily-stats-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+  padding: 16px;
+  background: #f8f9fa;
+  border: 1px solid #e4e9f0;
+  border-radius: 6px;
+}
+
+.tg-ads-toggle {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.tg-ads-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.tg-ads-toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.3s;
+  border-radius: 24px;
+}
+
+.tg-ads-toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.tg-ads-toggle input:checked + .tg-ads-toggle-slider {
+  background-color: #0088cc;
+}
+
+.tg-ads-toggle input:checked + .tg-ads-toggle-slider:before {
+  transform: translateX(20px);
+}
+
+.tg-ads-toggle-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #212529;
+}
+
+.tg-ads-daily-stats-container {
+  margin-top: 20px;
+  padding: 20px;
+  background: #ffffff;
+  border: 1px solid #e4e9f0;
+  border-radius: 6px;
+}
+
+.tg-ads-daily-stats-container .tg-ads-loading {
+  padding: 40px 20px;
+  margin: 0;
+}
+
+.tg-ads-daily-stats-container .tg-ads-loading-text {
+  color: #6c757d;
+  font-size: 14px;
+}
+
+.tg-ads-daily-stats-container .tg-ads-stats-summary {
+  margin-bottom: 20px;
+}
+
+.tg-ads-daily-stats-container .tg-ads-stats-metrics {
+  margin-bottom: 20px;
+}
+
+.tg-ads-daily-stats-container .tg-ads-error {
+  margin: 0;
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 6px;
+  padding: 16px;
+}
+
+.tg-ads-daily-stats-container .tg-ads-error p {
+  margin: 0;
+  color: #856404;
+  font-size: 14px;
+}
+
+.tg-ads-date-filter {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.tg-ads-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tg-ads-filter-group label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #6c757d;
+}
+
+.tg-ads-date-input {
+  padding: 8px 12px;
+  border: 1px solid #e4e9f0;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #212529;
+  background: #ffffff;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.tg-ads-date-input:hover {
+  border-color: #d0d7de;
+}
+
+.tg-ads-date-input:focus {
+  outline: none;
+  border-color: #0088cc;
+  box-shadow: 0 0 0 3px rgba(0, 136, 204, 0.1);
+}
+
+.tg-ads-filter-clear {
+  padding: 8px 16px;
+  background: #f8f9fa;
+  border: 1px solid #e4e9f0;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #6c757d;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tg-ads-filter-clear:hover {
+  background: #e9ecef;
+  border-color: #d0d7de;
+  color: #495057;
+}
+
+.tg-ads-export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: #28a745;
+  border: 1px solid #28a745;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-left: auto;
+}
+
+.tg-ads-export-btn:hover {
+  background: #218838;
+  border-color: #1e7e34;
+}
+
+.tg-ads-export-btn svg {
+  flex-shrink: 0;
+}
+
+.tg-ads-no-data {
+  text-align: center;
+  color: #6c757d;
+  padding: 40px 20px !important;
+  font-style: italic;
+}
+
+.tg-ads-skeleton-loading {
+  padding: 0;
+}
+
+.tg-ads-skeleton-filter {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.tg-ads-skeleton-filter-item {
+  width: 160px;
+  height: 36px;
+  background: linear-gradient(90deg, #e9ecef 25%, #f8f9fa 50%, #e9ecef 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 6px;
+}
+
+.tg-ads-skeleton-filter-btn {
+  width: 70px;
+  height: 36px;
+  background: linear-gradient(90deg, #e9ecef 25%, #f8f9fa 50%, #e9ecef 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 6px;
+}
+
+.tg-ads-skeleton-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.tg-ads-skeleton-title {
+  width: 180px;
+  height: 20px;
+}
+
+.tg-ads-skeleton-progress {
+  font-size: 13px;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.tg-ads-skeleton-table {
+  border: 1px solid #e4e9f0;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.tg-ads-skeleton-row {
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #f1f3f5;
+}
+
+.tg-ads-skeleton-row:last-child {
+  border-bottom: none;
+}
+
+.tg-ads-skeleton-row-header {
+  background: #f8f9fa;
+}
+
+.tg-ads-skeleton-cell {
+  flex: 1;
+  height: 16px;
+  background: linear-gradient(90deg, #e9ecef 25%, #f8f9fa 50%, #e9ecef 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+.tg-ads-skeleton-cell:first-child {
+  flex: 1.5;
+}
+
+.tg-ads-skeleton-text {
+  background: linear-gradient(90deg, #e9ecef 25%, #f8f9fa 50%, #e9ecef 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+.tg-ads-main-row.tg-ads-expandable {
+  cursor: pointer;
+}
+
+.tg-ads-main-row.tg-ads-expandable:hover {
+  background: #f0f7ff;
+}
+
+.tg-ads-expand-icon {
+  display: inline-block;
+  width: 12px;
+  font-size: 10px;
+  color: #6c757d;
+  transition: transform 0.2s;
+  margin-right: 8px;
+}
+
+.tg-ads-expand-icon.expanded {
+  transform: rotate(90deg);
+}
+
+.tg-ads-expand-placeholder {
+  display: inline-block;
+  width: 20px;
+}
+
+.tg-ads-sub-row {
+  background: #f8f9fa;
+}
+
+.tg-ads-sub-row td {
+  padding: 10px 16px !important;
+  font-size: 12px;
+  color: #495057;
+  border-bottom: 1px solid #e9ecef !important;
+}
+
+.tg-ads-sub-row:last-child td {
+  border-bottom: 1px solid #dee2e6 !important;
+}
+
+.tg-ads-sub-row td:first-child {
+  padding-left: 40px !important;
+}
+
+.tg-ads-ad-title {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+  color: #0088cc !important;
+}
+
+.tg-ads-confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: fadeIn 0.2s ease;
+}
+
+.tg-ads-confirm-dialog {
+  background: #ffffff;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 420px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease;
+}
+
+.tg-ads-confirm-header {
+  padding: 20px 24px 0;
+}
+
+.tg-ads-confirm-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #212529;
+}
+
+.tg-ads-confirm-body {
+  padding: 16px 24px 24px;
+}
+
+.tg-ads-confirm-body p {
+  margin: 0;
+  font-size: 14px;
+  color: #6c757d;
+  line-height: 1.5;
+}
+
+.tg-ads-confirm-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 24px;
+  background: #f8f9fa;
+  border-top: 1px solid #e4e9f0;
+}
+
+.tg-ads-view-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.tg-ads-view-tab {
+  padding: 6px 14px;
+  background: #f8f9fa;
+  border: 1px solid #e4e9f0;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #6c757d;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tg-ads-view-tab:hover {
+  background: #e9ecef;
+  border-color: #d0d7de;
+  color: #495057;
+}
+
+.tg-ads-view-tab.active {
+  background: #0088cc;
+  border-color: #0088cc;
+  color: #ffffff;
+}
+
+.tg-ads-view-tab.active:hover {
+  background: #0077b3;
+  border-color: #0077b3;
+}
+
+.tg-ads-skeleton-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.tg-ads-skeleton-tab {
+  width: 70px;
+  height: 30px;
+  background: linear-gradient(90deg, #e9ecef 25%, #f8f9fa 50%, #e9ecef 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+.tg-ads-ad-title-cell {
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}

@@ -38,6 +38,40 @@
 
   const getPageData = (data, page, perPage) => data.slice((page - 1) * perPage, page * perPage);
 
+  const showConfirmDialog = (title, message) => {
+    return new Promise((resolve) => {
+      const overlay = document.createElement('div');
+      overlay.className = 'tg-ads-confirm-overlay';
+      overlay.innerHTML = `
+        <div class="tg-ads-confirm-dialog">
+          <div class="tg-ads-confirm-header">
+            <h3 class="tg-ads-confirm-title">${title}</h3>
+          </div>
+          <div class="tg-ads-confirm-body">
+            <p>${message}</p>
+          </div>
+          <div class="tg-ads-confirm-footer">
+            <button class="tg-ads-btn tg-ads-btn-secondary" data-action="cancel">Cancel</button>
+            <button class="tg-ads-btn tg-ads-btn-primary" data-action="confirm">Continue</button>
+          </div>
+        </div>
+      `;
+
+      overlay.addEventListener('click', (e) => {
+        const action = e.target.dataset.action;
+        if (action === 'confirm') {
+          overlay.remove();
+          resolve(true);
+        } else if (action === 'cancel' || e.target === overlay) {
+          overlay.remove();
+          resolve(false);
+        }
+      });
+
+      document.body.appendChild(overlay);
+    });
+  };
+
   const showToast = (message, type = 'info') => {
     const existing = $('#tg-ads-toast');
     if (existing) existing.remove();
@@ -325,6 +359,96 @@
     return { ad_id: adId, title, daily_stats: dailyStats };
   };
 
+  const fetchAllAdsStats = async (ads, onProgress) => {
+    const allDailyStats = {};
+    const perAdData = {};
+    const adsStats = {};
+    let completed = 0;
+
+    for (const ad of ads) {
+      const adId = ad.ad_id || ad.id;
+      const adTitle = ad.title || ad.name || `Ad ${adId}`;
+      if (!adId) continue;
+
+      adsStats[adId] = { adId, title: adTitle, views: 0, clicks: 0, actions: 0, spent: 0, days: [] };
+
+      try {
+        const stats = await fetchAdStats(adId);
+        for (const day of stats.daily_stats) {
+          if (!allDailyStats[day.date]) {
+            allDailyStats[day.date] = { date: day.date, views: 0, clicks: 0, actions: 0, spent: 0 };
+            perAdData[day.date] = [];
+          }
+          allDailyStats[day.date].views += day.views || 0;
+          allDailyStats[day.date].clicks += day.clicks || 0;
+          allDailyStats[day.date].actions += day.actions || 0;
+          allDailyStats[day.date].spent += day.spent || 0;
+
+          adsStats[adId].views += day.views || 0;
+          adsStats[adId].clicks += day.clicks || 0;
+          adsStats[adId].actions += day.actions || 0;
+          adsStats[adId].spent += day.spent || 0;
+
+          if (day.views > 0 || day.clicks > 0 || day.actions > 0 || day.spent > 0) {
+            perAdData[day.date].push({
+              adId,
+              title: adTitle,
+              views: day.views || 0,
+              clicks: day.clicks || 0,
+              actions: day.actions || 0,
+              spent: day.spent || 0,
+              cpa: day.cpa || 0,
+              cpc: day.cpc || 0,
+              ctr: day.ctr || 0,
+              cvr: day.cvr || 0
+            });
+
+            adsStats[adId].days.push({
+              date: day.date,
+              views: day.views || 0,
+              clicks: day.clicks || 0,
+              actions: day.actions || 0,
+              spent: day.spent || 0,
+              cpa: day.cpa || 0,
+              cpc: day.cpc || 0,
+              ctr: day.ctr || 0,
+              cvr: day.cvr || 0
+            });
+          }
+        }
+      } catch {}
+
+      completed++;
+      if (onProgress) onProgress(completed, ads.length);
+    }
+
+    const byDate = Object.values(allDailyStats)
+      .map(d => ({
+        ...d,
+        cpa: d.actions > 0 ? d.spent / d.actions : 0,
+        cpc: d.clicks > 0 ? d.spent / d.clicks : 0,
+        ctr: d.views > 0 ? (d.clicks / d.views) * 100 : 0,
+        cvr: d.clicks > 0 ? (d.actions / d.clicks) * 100 : 0,
+        cpm: d.views > 0 ? (d.spent / d.views) * 1000 : 0,
+        ads: perAdData[d.date] || []
+      }))
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    const byAds = Object.values(adsStats)
+      .map(ad => ({
+        ...ad,
+        cpa: ad.actions > 0 ? ad.spent / ad.actions : 0,
+        cpc: ad.clicks > 0 ? ad.spent / ad.clicks : 0,
+        ctr: ad.views > 0 ? (ad.clicks / ad.views) * 100 : 0,
+        cvr: ad.clicks > 0 ? (ad.actions / ad.clicks) * 100 : 0,
+        days: ad.days.sort((a, b) => new Date(b.date) - new Date(a.date))
+      }))
+      .filter(ad => ad.views > 0 || ad.clicks > 0 || ad.actions > 0 || ad.spent > 0)
+      .sort((a, b) => b.spent - a.spent);
+
+    return { byDate, byAds };
+  };
+
   const getPageNumbers = (current, total) => {
     if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
     const pages = [1];
@@ -333,6 +457,46 @@
     if (current < total - 2) pages.push('...');
     pages.push(total);
     return pages;
+  };
+
+  const exportToCSV = (data, viewMode, filename) => {
+    let csv = '';
+    if (viewMode === 'date') {
+      csv = 'Date,Views,Clicks,Actions,Spent,CPA,CPC,CTR,CVR,CPM\n';
+      csv += data.map(d => [
+        d.date,
+        d.views,
+        d.clicks,
+        d.actions,
+        d.spent.toFixed(2),
+        d.cpa.toFixed(2),
+        d.cpc.toFixed(2),
+        d.ctr.toFixed(2),
+        d.cvr.toFixed(2),
+        d.cpm.toFixed(2)
+      ].join(',')).join('\n');
+    } else {
+      csv = 'Ad Title,Views,Clicks,Actions,Spent,CPA,CPC,CTR,CVR\n';
+      csv += data.map(ad => [
+        `"${ad.title.replace(/"/g, '""')}"`,
+        ad.views,
+        ad.clicks,
+        ad.actions,
+        ad.spent.toFixed(2),
+        ad.cpa.toFixed(2),
+        ad.cpc.toFixed(2),
+        ad.ctr.toFixed(2),
+        ad.cvr.toFixed(2)
+      ].join(',')).join('\n');
+    }
+
+    const link = document.createElement('a');
+    link.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+    link.download = filename;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const createStatsWidget = (data) => {
@@ -548,6 +712,14 @@
             </div>
           `).join('')}
         </div>
+        <div class="tg-ads-daily-stats-toggle">
+          <label class="tg-ads-toggle">
+            <input type="checkbox" id="tg-ads-daily-toggle">
+            <span class="tg-ads-toggle-slider"></span>
+          </label>
+          <span class="tg-ads-toggle-label">Daily Stats Breakdown (All Ads)</span>
+        </div>
+        <div id="tg-ads-daily-stats-container" class="tg-ads-daily-stats-container" style="display: none;"></div>
       </div>
     `;
 
@@ -592,6 +764,235 @@
     return charts.length ? charts[charts.length - 1].parentElement : $('.pr-content') || $('main') || document.body;
   };
 
+  const renderDailyStatsTable = (container, data) => {
+    const { byDate, byAds } = data;
+    let viewMode = 'date';
+    let filteredByDate = [...byDate];
+    let filteredByAds = [...byAds];
+    let currentPage = 1;
+    let startDate = '';
+    let endDate = '';
+    const expandedRows = new Set();
+
+    const filterData = () => {
+      filteredByDate = byDate.filter(d => {
+        if (startDate && d.date < startDate) return false;
+        if (endDate && d.date > endDate) return false;
+        return true;
+      });
+      filteredByAds = byAds.map(ad => ({
+        ...ad,
+        days: ad.days.filter(d => {
+          if (startDate && d.date < startDate) return false;
+          if (endDate && d.date > endDate) return false;
+          return true;
+        })
+      })).filter(ad => ad.days.length > 0);
+      currentPage = 1;
+      expandedRows.clear();
+    };
+
+    const renderSubRowsForDate = (ads) => ads.map(ad => `
+      <tr class="tg-ads-sub-row">
+        <td class="tg-ads-ad-title" title="${ad.title}">${ad.title}</td>
+        <td>${formatNumber(ad.views)}</td><td>${formatNumber(ad.clicks)}</td><td>${formatNumber(ad.actions)}</td>
+        <td>${formatCurrency(ad.spent)}</td><td>${formatCurrency(ad.cpa)}</td><td>${formatCurrency(ad.cpc)}</td>
+        <td>${formatPercent(ad.ctr)}</td><td>${formatPercent(ad.cvr)}</td>
+      </tr>
+    `).join('');
+
+    const renderSubRowsForAd = (days) => days.map(d => `
+      <tr class="tg-ads-sub-row">
+        <td class="tg-ads-date-cell">${new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
+        <td>${formatNumber(d.views)}</td><td>${formatNumber(d.clicks)}</td><td>${formatNumber(d.actions)}</td>
+        <td>${formatCurrency(d.spent)}</td><td>${formatCurrency(d.cpa)}</td><td>${formatCurrency(d.cpc)}</td>
+        <td>${formatPercent(d.ctr)}</td><td>${formatPercent(d.cvr)}</td>
+      </tr>
+    `).join('');
+
+    const render = () => {
+      const currentData = viewMode === 'date' ? filteredByDate : filteredByAds;
+      const totalPages = Math.ceil(currentData.length / ITEMS_PER_PAGE);
+
+      const renderDateRows = (page) => getPageData(filteredByDate, page, ITEMS_PER_PAGE).map(d => {
+        const isExpanded = expandedRows.has(d.date);
+        const hasAds = d.ads && d.ads.length > 0;
+        return `
+          <tr class="tg-ads-main-row${hasAds ? ' tg-ads-expandable' : ''}" data-key="${d.date}">
+            <td class="tg-ads-date-cell">
+              ${hasAds ? `<span class="tg-ads-expand-icon${isExpanded ? ' expanded' : ''}">▶</span>` : '<span class="tg-ads-expand-placeholder"></span>'}
+              ${new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            </td>
+            <td>${formatNumber(d.views)}</td><td>${formatNumber(d.clicks)}</td><td>${formatNumber(d.actions)}</td>
+            <td>${formatCurrency(d.spent)}</td><td>${formatCurrency(d.cpa)}</td><td>${formatCurrency(d.cpc)}</td>
+            <td>${formatPercent(d.ctr)}</td><td>${formatPercent(d.cvr)}</td>
+          </tr>
+          ${isExpanded && hasAds ? renderSubRowsForDate(d.ads) : ''}
+        `;
+      }).join('');
+
+      const renderAdsRows = (page) => getPageData(filteredByAds, page, ITEMS_PER_PAGE).map(ad => {
+        const isExpanded = expandedRows.has(String(ad.adId));
+        const hasDays = ad.days && ad.days.length > 0;
+        return `
+          <tr class="tg-ads-main-row${hasDays ? ' tg-ads-expandable' : ''}" data-key="${ad.adId}">
+            <td class="tg-ads-ad-title-cell" title="${ad.title}">
+              ${hasDays ? `<span class="tg-ads-expand-icon${isExpanded ? ' expanded' : ''}">▶</span>` : '<span class="tg-ads-expand-placeholder"></span>'}
+              ${ad.title}
+            </td>
+            <td>${formatNumber(ad.views)}</td><td>${formatNumber(ad.clicks)}</td><td>${formatNumber(ad.actions)}</td>
+            <td>${formatCurrency(ad.spent)}</td><td>${formatCurrency(ad.cpa)}</td><td>${formatCurrency(ad.cpc)}</td>
+            <td>${formatPercent(ad.ctr)}</td><td>${formatPercent(ad.cvr)}</td>
+          </tr>
+          ${isExpanded && hasDays ? renderSubRowsForAd(ad.days) : ''}
+        `;
+      }).join('');
+
+      const tableBody = $('tbody', container);
+      const paginationInfo = $('.tg-ads-pagination-info', container);
+      const pagination = $('.tg-ads-pagination', container);
+      const tableTitle = $('.tg-ads-table-title', container);
+      const firstTh = $('thead th:first-child', container);
+
+      if (firstTh) firstTh.textContent = viewMode === 'date' ? 'Date' : 'Ad';
+      if (tableTitle) tableTitle.textContent = viewMode === 'date' ? `By Date (${currentData.length} days)` : `By Ads (${currentData.length} ads)`;
+
+      if (tableBody) {
+        tableBody.innerHTML = currentData.length
+          ? (viewMode === 'date' ? renderDateRows(currentPage) : renderAdsRows(currentPage))
+          : '<tr><td colspan="9" class="tg-ads-no-data">No data available</td></tr>';
+      }
+
+      if (paginationInfo) {
+        const start = (currentPage - 1) * ITEMS_PER_PAGE + 1;
+        paginationInfo.textContent = currentData.length ? `Showing ${start}-${Math.min(start + ITEMS_PER_PAGE - 1, currentData.length)} of ${currentData.length}` : '0 results';
+      }
+
+      if (pagination) {
+        if (totalPages > 1) {
+          pagination.style.display = 'flex';
+          pagination.innerHTML = `
+            <button class="tg-ads-page-btn" data-action="prev" ${currentPage === 1 ? 'disabled' : ''}>← Previous</button>
+            <div class="tg-ads-page-numbers">${getPageNumbers(currentPage, totalPages).map(p => p === '...' ? '<span class="tg-ads-page-ellipsis">...</span>' : `<button class="tg-ads-page-number${p === currentPage ? ' active' : ''}" data-page="${p}">${p}</button>`).join('')}</div>
+            <button class="tg-ads-page-btn" data-action="next" ${currentPage === totalPages ? 'disabled' : ''}>Next →</button>
+          `;
+        } else {
+          pagination.style.display = 'none';
+        }
+      }
+
+      $$('.tg-ads-view-tab', container).forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.view === viewMode);
+      });
+    };
+
+    const minDate = byDate.length ? byDate[byDate.length - 1].date : '';
+    const maxDate = byDate.length ? byDate[0].date : '';
+
+    container.innerHTML = `
+      <div class="tg-ads-view-tabs">
+        <button class="tg-ads-view-tab active" data-view="date">By Date</button>
+        <button class="tg-ads-view-tab" data-view="ads">By Ads</button>
+      </div>
+      <div class="tg-ads-date-filter">
+        <div class="tg-ads-filter-group">
+          <label>From:</label>
+          <input type="date" id="tg-ads-start-date" class="tg-ads-date-input" min="${minDate}" max="${maxDate}">
+        </div>
+        <div class="tg-ads-filter-group">
+          <label>To:</label>
+          <input type="date" id="tg-ads-end-date" class="tg-ads-date-input" min="${minDate}" max="${maxDate}">
+        </div>
+        <button class="tg-ads-filter-clear" data-action="clear-filter">Clear</button>
+        <button class="tg-ads-export-btn" data-action="export">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export CSV
+        </button>
+      </div>
+      <div class="tg-ads-stats-table-container">
+        <div class="tg-ads-table-header">
+          <h4 class="tg-ads-table-title">By Date (${byDate.length} days)</h4>
+          <div class="tg-ads-pagination-info">Showing 1-${Math.min(ITEMS_PER_PAGE, byDate.length)} of ${byDate.length}</div>
+        </div>
+        <div class="tg-ads-table-wrapper">
+          <table class="tg-ads-stats-table">
+            <thead><tr><th>Date</th><th>Views</th><th>Clicks</th><th>Actions</th><th>Spent</th><th>CPA</th><th>CPC</th><th>CTR</th><th>CVR</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="tg-ads-pagination"></div>
+      </div>
+    `;
+
+    render();
+
+    const startInput = $('#tg-ads-start-date', container);
+    const endInput = $('#tg-ads-end-date', container);
+
+    startInput?.addEventListener('change', (e) => { startDate = e.target.value; filterData(); render(); });
+    endInput?.addEventListener('change', (e) => { endDate = e.target.value; filterData(); render(); });
+
+    container.addEventListener('click', (e) => {
+      const viewTab = e.target.closest('.tg-ads-view-tab');
+      if (viewTab && viewTab.dataset.view) {
+        viewMode = viewTab.dataset.view;
+        currentPage = 1;
+        expandedRows.clear();
+        render();
+        return;
+      }
+
+      if (e.target.dataset.action === 'clear-filter') {
+        startDate = '';
+        endDate = '';
+        if (startInput) startInput.value = '';
+        if (endInput) endInput.value = '';
+        filterData();
+        render();
+        return;
+      }
+
+      if (e.target.closest('[data-action="export"]')) {
+        const currentData = viewMode === 'date' ? filteredByDate : filteredByAds;
+        const dateStr = new Date().toISOString().split('T')[0];
+        const filename = viewMode === 'date'
+          ? `telegram-ads-by-date-${dateStr}.csv`
+          : `telegram-ads-by-ads-${dateStr}.csv`;
+        exportToCSV(currentData, viewMode, filename);
+        showToast('CSV exported successfully!', 'success');
+        return;
+      }
+
+      const mainRow = e.target.closest('.tg-ads-main-row.tg-ads-expandable');
+      if (mainRow) {
+        const key = mainRow.dataset.key;
+        if (expandedRows.has(key)) {
+          expandedRows.delete(key);
+        } else {
+          expandedRows.add(key);
+        }
+        render();
+        return;
+      }
+
+      const pageBtn = e.target.closest('[data-page]');
+      const actionBtn = e.target.closest('[data-action]');
+      const currentData = viewMode === 'date' ? filteredByDate : filteredByAds;
+      const totalPages = Math.ceil(currentData.length / ITEMS_PER_PAGE);
+
+      if (pageBtn) {
+        currentPage = parseInt(pageBtn.dataset.page);
+        render();
+      } else if (actionBtn?.dataset.action === 'prev' && currentPage > 1) {
+        currentPage--;
+        render();
+      } else if (actionBtn?.dataset.action === 'next' && currentPage < totalPages) {
+        currentPage++;
+        render();
+      }
+    }, { passive: true });
+  };
+
   const initDashboard = async () => {
     if (!isAccountPage()) return;
     $('#tg-ads-dashboard-widget')?.remove();
@@ -612,11 +1013,73 @@
       }
     });
 
+    let cachedAds = null;
+
     try {
       const ads = await fetchAllAds();
       if (!isAccountPage()) { widget.remove(); return; }
+      cachedAds = ads;
       updateDashboardWidget(widget, calculateDashboardMetrics(ads));
     } catch {}
+
+    const toggle = $('#tg-ads-daily-toggle', widget);
+    const statsContainer = $('#tg-ads-daily-stats-container', widget);
+
+    if (toggle && statsContainer) {
+      toggle.addEventListener('change', async () => {
+        if (toggle.checked) {
+          const confirmed = await showConfirmDialog(
+            'Fetch Daily Stats',
+            'This will fetch daily stats from all ads which may take a few minutes depending on the number of ads. Do you want to continue?'
+          );
+          if (!confirmed) {
+            toggle.checked = false;
+            return;
+          }
+
+          statsContainer.style.display = 'block';
+          statsContainer.innerHTML = `
+            <div class="tg-ads-skeleton-loading">
+              <div class="tg-ads-skeleton-tabs">
+                <div class="tg-ads-skeleton-tab"></div>
+                <div class="tg-ads-skeleton-tab"></div>
+              </div>
+              <div class="tg-ads-skeleton-filter">
+                <div class="tg-ads-skeleton-filter-item"></div>
+                <div class="tg-ads-skeleton-filter-item"></div>
+                <div class="tg-ads-skeleton-filter-btn"></div>
+              </div>
+              <div class="tg-ads-skeleton-header">
+                <div class="tg-ads-skeleton-text tg-ads-skeleton-title"></div>
+                <div class="tg-ads-skeleton-progress">Fetching stats... <span id="tg-ads-progress">0</span>/<span id="tg-ads-total">0</span> ads</div>
+              </div>
+              <div class="tg-ads-skeleton-table">
+                <div class="tg-ads-skeleton-row tg-ads-skeleton-row-header"><div class="tg-ads-skeleton-cell"></div><div class="tg-ads-skeleton-cell"></div><div class="tg-ads-skeleton-cell"></div><div class="tg-ads-skeleton-cell"></div><div class="tg-ads-skeleton-cell"></div><div class="tg-ads-skeleton-cell"></div><div class="tg-ads-skeleton-cell"></div><div class="tg-ads-skeleton-cell"></div><div class="tg-ads-skeleton-cell"></div></div>
+                ${Array(10).fill('<div class="tg-ads-skeleton-row"><div class="tg-ads-skeleton-cell"></div><div class="tg-ads-skeleton-cell"></div><div class="tg-ads-skeleton-cell"></div><div class="tg-ads-skeleton-cell"></div><div class="tg-ads-skeleton-cell"></div><div class="tg-ads-skeleton-cell"></div><div class="tg-ads-skeleton-cell"></div><div class="tg-ads-skeleton-cell"></div><div class="tg-ads-skeleton-cell"></div></div>').join('')}
+              </div>
+            </div>
+          `;
+
+          try {
+            const ads = cachedAds || await fetchAllAds();
+            $('#tg-ads-total', statsContainer).textContent = ads.length;
+
+            const dailyStats = await fetchAllAdsStats(ads, (completed) => {
+              const progressEl = $('#tg-ads-progress', statsContainer);
+              if (progressEl) progressEl.textContent = completed;
+            });
+
+            if (!isAccountPage()) return;
+            renderDailyStatsTable(statsContainer, dailyStats);
+          } catch (e) {
+            statsContainer.innerHTML = `<div class="tg-ads-error"><p>Failed to load stats: ${e.message}</p></div>`;
+          }
+        } else {
+          statsContainer.style.display = 'none';
+          statsContainer.innerHTML = '';
+        }
+      });
+    }
   };
 
   const init = async () => {

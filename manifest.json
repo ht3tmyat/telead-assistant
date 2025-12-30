@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "TeleAd Assistant",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "Enhanced tools for Telegram Ads: daily stats breakdown, dashboard overview, and bulk URL inserter. Data processed locally.",
   "permissions": [],
   "homepage_url": "https://htetmyat.dev",

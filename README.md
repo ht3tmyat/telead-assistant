@@ -1,59 +1,47 @@
 # TeleAd Assistant
 
-Enhanced tools for Telegram Ads - a Chrome extension that provides daily statistics breakdown, dashboard overview, and bulk URL insertion tools.
+[![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+[![Chrome Web Store](https://img.shields.io/chrome-web-store/v/pcocefnfhpcoidffbglalokbbcccgiil)](https://chromewebstore.google.com/detail/pcocefnfhpcoidffbglalokbbcccgiil)
+[![Open Source](https://img.shields.io/badge/Open%20Source-%E2%9D%A4-red)](https://github.com/ht3tmyat/telead-assistant)
+
+An open-source Chrome extension with enhanced tools for Telegram Ads.
 
 ## Features
 
-- **Daily Statistics Breakdown** - View detailed daily stats for each ad campaign (Views, Clicks, Actions, Spent, CPA, CPC, CTR, CVR, CPM)
-- **Dashboard Overview** - Quick summary of all ads on account page with status breakdown
-- **Bulk URL Inserter** - Insert up to 100 channel or bot URLs at once
-- **View ID List** - Quickly copy all selected channel/bot IDs
+- **Daily Statistics Breakdown** - Detailed daily stats (Views, Clicks, Actions, Spent, CPA, CPC, CTR, CVR, CPM)
+- **Dashboard Overview** - Summary of all ads with status breakdown
+- **Bulk URL Inserter** - Insert up to 100 channel/bot URLs at once
+- **View ID List** - Copy all selected channel/bot IDs
+- **Export to CSV** - Download stats data for analysis
 
 ## Installation
 
-### From Chrome Web Store
-[Install from Chrome Web Store](https://chromewebstore.google.com/detail/pcocefnfhpcoidffbglalokbbcccgiil)
+**Chrome Web Store**: [Install here](https://chromewebstore.google.com/detail/pcocefnfhpcoidffbglalokbbcccgiil)
 
-### Manual Installation (Developer Mode)
-1. Download or clone this repository
-2. Open Chrome and go to `chrome://extensions/`
-3. Enable "Developer mode" (top right)
-4. Click "Load unpacked"
-5. Select the cloned folder
-6. Done!
+**Manual Installation**:
 
-## Usage
-
-1. Go to [ads.telegram.org](https://ads.telegram.org) and log in
-2. **Stats Page**: Navigate to any ad stats page to see daily breakdown
-3. **Account Page**: See dashboard overview with all ad metrics
-4. **Create/Edit Ad**: Use bulk URL inserter for channels/bots
+1. Clone this repository
+2. Go to `chrome://extensions/`
+3. Enable "Developer mode"
+4. Click "Load unpacked" and select the folder
 
 ## Privacy
 
-- All data is processed locally in your browser
-- Communicates directly with Telegram Ads using your existing session
-- No external servers or analytics
-- No data collection
-
-## Tech Stack
-
-- Vanilla JavaScript (no frameworks)
-- CSS3 with responsive design
-- Chrome Extension Manifest V3
+All data is processed locally in your browser. No external servers, no data collection.
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome! Fork, create a branch, commit changes, and open a PR.
+
+## Support
+
+- Star on [GitHub](https://github.com/ht3tmyat/telead-assistant)
+- [Buy me a coffee](https://ko-fi.com/ht3tmyat)
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) file
-
-## Author
-
-Made by [htetmyat.dev](https://htetmyat.dev)
+MIT License
 
 ---
 
-**Note**: This extension is not affiliated with or endorsed by Telegram. It is an independent tool to enhance your advertising workflow.
+Made by [htetmyat.dev](https://htetmyat.dev)
