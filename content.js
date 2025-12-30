@@ -2,7 +2,6 @@
   'use strict';
 
   const MAX_URLS = 100;
-  const MAX_PAGES = 100;
   const MAX_RETRIES = 10;
   const ITEMS_PER_PAGE = 10;
   const TOAST_DURATION = 4000;
@@ -647,9 +646,9 @@
 
     const apiUrl = `${API_BASE}/api?hash=${extractHashFromPage()}`;
     const allAds = [], seenIds = new Set();
-    let offsetId = '', hasMore = true, page = 1;
+    let offsetId = '', hasMore = true;
 
-    while (hasMore && page <= MAX_PAGES) {
+    while (hasMore) {
       const body = new URLSearchParams({ owner_id: ownerId, method: 'getAdsList' });
       if (offsetId) body.append('offset_id', offsetId);
 
@@ -672,7 +671,7 @@
       }
 
       const next = result.next_offset_id || result.offset_id || result.next_offset || '';
-      if (next && next !== offsetId && newCount > 0) { offsetId = next; page++; }
+      if (next && next !== offsetId && newCount > 0) { offsetId = next; }
       else hasMore = false;
     }
 
