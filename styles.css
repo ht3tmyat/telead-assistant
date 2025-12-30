@@ -1759,3 +1759,27 @@
   white-space: nowrap;
   font-weight: 500;
 }
+
+.tg-ads-action-cell {
+  width: 40px;
+  text-align: center;
+}
+
+.tg-ads-row-export {
+  background: transparent;
+  border: 1px solid #e4e9f0;
+  border-radius: 4px;
+  padding: 4px 6px;
+  cursor: pointer;
+  color: #6c757d;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.tg-ads-row-export:hover {
+  background: #28a745;
+  border-color: #28a745;
+  color: #ffffff;
+}

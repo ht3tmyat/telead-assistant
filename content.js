@@ -814,6 +814,7 @@
         <td>${formatNumber(ad.views)}</td><td>${formatNumber(ad.clicks)}</td><td>${formatNumber(ad.actions)}</td>
         <td>${formatCurrency(ad.spent)}</td><td>${formatCurrency(ad.cpa)}</td><td>${formatCurrency(ad.cpc)}</td>
         <td>${formatPercent(ad.ctr)}</td><td>${formatPercent(ad.cvr)}</td>
+        <td></td>
       </tr>
     `).join('');
 
@@ -823,8 +824,11 @@
         <td>${formatNumber(d.views)}</td><td>${formatNumber(d.clicks)}</td><td>${formatNumber(d.actions)}</td>
         <td>${formatCurrency(d.spent)}</td><td>${formatCurrency(d.cpa)}</td><td>${formatCurrency(d.cpc)}</td>
         <td>${formatPercent(d.ctr)}</td><td>${formatPercent(d.cvr)}</td>
+        <td></td>
       </tr>
     `).join('');
+
+    const exportRowBtn = `<button class="tg-ads-row-export" title="Export"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>`;
 
     const render = () => {
       const currentData = viewMode === 'date' ? filteredByDate : filteredByAds;
@@ -842,6 +846,7 @@
             <td>${formatNumber(d.views)}</td><td>${formatNumber(d.clicks)}</td><td>${formatNumber(d.actions)}</td>
             <td>${formatCurrency(d.spent)}</td><td>${formatCurrency(d.cpa)}</td><td>${formatCurrency(d.cpc)}</td>
             <td>${formatPercent(d.ctr)}</td><td>${formatPercent(d.cvr)}</td>
+            <td class="tg-ads-action-cell">${hasAds ? `<span data-export-date="${d.date}">${exportRowBtn}</span>` : ''}</td>
           </tr>
           ${isExpanded && hasAds ? renderSubRowsForDate(d.ads) : ''}
         `;
@@ -859,6 +864,7 @@
             <td>${formatNumber(ad.views)}</td><td>${formatNumber(ad.clicks)}</td><td>${formatNumber(ad.actions)}</td>
             <td>${formatCurrency(ad.spent)}</td><td>${formatCurrency(ad.cpa)}</td><td>${formatCurrency(ad.cpc)}</td>
             <td>${formatPercent(ad.ctr)}</td><td>${formatPercent(ad.cvr)}</td>
+            <td class="tg-ads-action-cell">${hasDays ? `<span data-export-ad="${ad.adId}">${exportRowBtn}</span>` : ''}</td>
           </tr>
           ${isExpanded && hasDays ? renderSubRowsForAd(ad.days) : ''}
         `;
@@ -876,7 +882,7 @@
       if (tableBody) {
         tableBody.innerHTML = currentData.length
           ? (viewMode === 'date' ? renderDateRows(currentPage) : renderAdsRows(currentPage))
-          : '<tr><td colspan="9" class="tg-ads-no-data">No data available</td></tr>';
+          : '<tr><td colspan="10" class="tg-ads-no-data">No data available</td></tr>';
       }
 
       if (paginationInfo) {
@@ -932,7 +938,7 @@
         </div>
         <div class="tg-ads-table-wrapper">
           <table class="tg-ads-stats-table">
-            <thead><tr><th>Date</th><th>Views</th><th>Clicks</th><th>Actions</th><th>Spent</th><th>CPA</th><th>CPC</th><th>CTR</th><th>CVR</th></tr></thead>
+            <thead><tr><th>Date</th><th>Views</th><th>Clicks</th><th>Actions</th><th>Spent</th><th>CPA</th><th>CPC</th><th>CTR</th><th>CVR</th><th></th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
@@ -976,6 +982,50 @@
           : `telegram-ads-by-ads-${dateStr}.csv`;
         exportToCSV(currentData, viewMode, filename);
         showToast('CSV exported successfully!', 'success');
+        return;
+      }
+
+      const exportDateBtn = e.target.closest('[data-export-date]');
+      if (exportDateBtn) {
+        e.stopPropagation();
+        const date = exportDateBtn.dataset.exportDate;
+        const dayData = filteredByDate.find(d => d.date === date);
+        if (dayData && dayData.ads) {
+          let csv = 'Ad Title,Views,Clicks,Actions,Spent,CPA,CPC,CTR,CVR\n';
+          csv += dayData.ads.map(ad => [
+            `"${ad.title.replace(/"/g, '""')}"`,
+            ad.views, ad.clicks, ad.actions,
+            ad.spent.toFixed(2), ad.cpa.toFixed(2), ad.cpc.toFixed(2),
+            ad.ctr.toFixed(2), ad.cvr.toFixed(2)
+          ].join(',')).join('\n');
+          const link = document.createElement('a');
+          link.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+          link.download = `telegram-ads-${date}.csv`;
+          link.click();
+          showToast(`Exported ${dayData.ads.length} ads for ${date}`, 'success');
+        }
+        return;
+      }
+
+      const exportAdBtn = e.target.closest('[data-export-ad]');
+      if (exportAdBtn) {
+        e.stopPropagation();
+        const adId = exportAdBtn.dataset.exportAd;
+        const adData = filteredByAds.find(a => String(a.adId) === adId);
+        if (adData && adData.days) {
+          let csv = 'Date,Views,Clicks,Actions,Spent,CPA,CPC,CTR,CVR\n';
+          csv += adData.days.map(d => [
+            d.date, d.views, d.clicks, d.actions,
+            d.spent.toFixed(2), d.cpa.toFixed(2), d.cpc.toFixed(2),
+            d.ctr.toFixed(2), d.cvr.toFixed(2)
+          ].join(',')).join('\n');
+          const link = document.createElement('a');
+          link.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+          const safeTitle = adData.title.replace(/[^a-z0-9]/gi, '-').substring(0, 30);
+          link.download = `telegram-ad-${safeTitle}.csv`;
+          link.click();
+          showToast(`Exported ${adData.days.length} days for "${adData.title}"`, 'success');
+        }
         return;
       }
 
