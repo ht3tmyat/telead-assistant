@@ -12,7 +12,7 @@ Enhanced tools for Telegram Ads - a Chrome extension that provides daily statist
 ## Installation
 
 ### From Chrome Web Store
-Coming soon
+[Install from Chrome Web Store](https://chromewebstore.google.com/detail/pcocefnfhpcoidffbglalokbbcccgiil)
 
 ### Manual Installation (Developer Mode)
 1. Download or clone this repository
