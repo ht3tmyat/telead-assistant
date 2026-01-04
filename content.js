@@ -290,11 +290,12 @@
           }
 
           if (xData) {
+            const hasVideo = 'y3' in series;
             for (let i = 0; i < xData.length; i++) {
               chartData.dates.push(new Date(xData[i]).toISOString().split('T')[0]);
               chartData.views.push(series.y0?.[i] || 0);
-              chartData.clicks.push(series.y1?.[i] || 0);
-              chartData.actions.push(series.y2?.[i] || 0);
+              chartData.clicks.push(hasVideo ? (series.y2?.[i] || 0) : (series.y1?.[i] || 0));
+              chartData.actions.push(hasVideo ? (series.y3?.[i] || 0) : (series.y2?.[i] || 0));
             }
           }
         }
